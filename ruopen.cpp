@@ -60,7 +60,6 @@ string *getSubjects()
 	stringstream ss;
 	ss << "semester=" << info.semester << "&campus=" << info.campus << "&level=U,G";
 	string params = ss.str();
-	cout << params << endl;
 	curl_easy_setopt(curl.handle, CURLOPT_HTTPHEADER, curl.headers.json);
 	curl_easy_setopt(curl.handle, CURLOPT_URL, string("http://sis.rutgers.edu/soc/subjects.json?").append(params).c_str());
 	curl_easy_setopt(curl.handle, CURLOPT_REFERER, "http://sis.rutgers.edu/soc");
@@ -70,39 +69,7 @@ string *getSubjects()
 		return NULL;
 	else
 		return &curl.response;
-
-	/* //Print subject results to standard output
-	Json::Value root;
-	Json::Reader jsonreader;
-	if (!jsonreader.parse(response, root)) {
-		cout << "Json parser errored on subjects.";
-		exit(1);
-	}
-	int jsonsize = root.size();
-	for (int i = 0; i < jsonsize; ++i) {
-		string subj = root[i].get("description", "NULL").asString();
-		string subjcode = root[i].get("code", "NULL").asString();
-		cout << "Subject: (" << subjcode << ") " << subj << endl;
-	}
-	*/
-}
-
-int main(int argc, char **argv)
-{
-	init();
-
-	info.semester = 12014;
-	info.campus = "NB";
-
-
-	string *subjects = getSubjects();
-	if (subjects == NULL) {
-		cerr << "ERROR: Unable to retrieve subjects" << endl;
-	}
-	cout << "Response code: " << curl.res << endl;
-	cout << "Response length: " << curl.respLen << endl;
-	cout << "Response header: \n" << curl.responseHeader << endl;
-
+/*
 	Json::Value root;
 	Json::Reader jsonreader;
 	if (!jsonreader.parse(*subjects, root)) {
@@ -115,6 +82,79 @@ int main(int argc, char **argv)
 		string subjcode = root[i].get("code", "NULL").asString();
 		cout << "Subject: (" << subjcode << ") " << subj << endl;
 	}
+	*/
+}
+
+string *getCourses(string subject)
+{
+	stringstream ss;
+	ss << "semester=" << info.semester << "&campus=" << info.campus << "&level=U,G&subject=" << subject;
+	string params = ss.str();
+	curl_easy_setopt(curl.handle, CURLOPT_HTTPHEADER, curl.headers.json);
+	curl_easy_setopt(curl.handle, CURLOPT_URL, string("http://sis.rutgers.edu/soc/courses.json?").append(params).c_str());
+	curl_easy_setopt(curl.handle, CURLOPT_REFERER, "http://sis.rutgers.edu/soc");
+	curl.res = curl_easy_perform(curl.handle);
+
+	if (curl.res != CURLE_OK)
+		return NULL;
+	else
+		return &curl.response;
+
+}
+
+int main(int argc, char **argv)
+{
+	init();
+
+	info.semester = 12014;
+	info.campus = "NB";
+
+
+	string *subjects_json = getSubjects();
+	if (subjects_json == NULL) {
+		cerr << "ERROR: Unable to retrieve subjects" << endl;
+		return 1;
+	}
+	curl.response.clear();
+	string *courses_json = getCourses("010");
+	if (courses_json == NULL) {
+		cerr << "ERROR: Unable to retrieve courses" << endl;
+		return 1;
+	}
+	
+	debug();
+
+	Json::Value courses;
+	Json::Reader jsonreader;
+	if (!jsonreader.parse(*courses_json, courses)) {
+		cerr << "ERROR: Json parser errored on courses." << endl;
+		return 1;
+	}
+	ofstream fsections;
+	fsections.open("sections.json");
+	int numCourses = courses.size();
+	for (int c = 0; c < numCourses; ++c) {
+		string course = courses[c].get("title", "-------------CANT GET TITLE").asString();
+		int numOpen = courses[c].get("openSections", 0).asInt();
+		if (numOpen == 0)
+			cout << "NOTHING OPEN for " << course << endl;
+		else {
+			cout << "OPEN for " << course << endl;
+			Json::Value sections = courses[c]["sections"];
+			int numSections = sections.size();
+			for (int s = 0; s < numSections; ++s) 
+			{
+				string index = sections[s].get("index", "NULL").asString();
+				string section = sections[s].get("number", "NULL").asString();
+				bool open = sections[s].get("openStatus", false).asBool();
+				if (open)
+					fsections << "[" << index << "] " << section << " OPEN" << endl;
+				else
+					fsections << "[" << index << "] " << section << " closed" << endl;
+			}
+		}
+	}
+	fsections.close();
 
 	return 0;
 }
@@ -132,4 +172,7 @@ void debug()
 	file.open("response.html");
 	file << curl.response;
 	file.close();
+	cout << "Response code: " << curl.res << endl;
+	cout << "Response length: " << curl.respLen << endl;
+	cout << "Response header: \n" << curl.responseHeader << endl;
 }

@@ -30,6 +30,7 @@ struct Info {
 void init();
 int writeCallback(char *, size_t, size_t, string *);
 string *getSubjects();
+string *getCourses();
 
 void debug();
 void __attribute__ ((destructor)) dtor();
