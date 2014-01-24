@@ -10,6 +10,9 @@
 #include <json/json.h>
 #include <boost/regex.hpp>
 #include <list>
+#include <algorithm>
+
+#define CONFFILE "ruopen.conf"
 
 using namespace std;
 
@@ -31,13 +34,41 @@ struct Info {
 	string semester;
 	string semesterString;
 	string campus;
+	string campusString;
 };
 
-void init();
+struct Department;
+struct Course;
+struct Section;
+typedef list<Department> ListDept;
+typedef list<Course> ListCourses;
+typedef list<Section> ListSections;
+
+struct Section {
+	string section;
+	string courseIndex;
+};
+
+struct Course {
+	string course;
+	string courseCode;
+	ListSections sections;
+};
+
+struct Department {
+	string dept;
+	string deptCode;
+	ListCourses courses;
+};
+
+bool init();
 int writeCallback(char *, size_t, size_t, string *);
-bool setSemester();
-string *getSubjects();
-string *getCourses();
+bool setSemester(string);
+Json::Value *getDepartments();
+Json::Value *getCourses(string);
+string getCurrentSemester();
+bool setCampus(string);
+bool spotCourse(string &, string &, string &);
 string semesterCodeToString(string);
 string semesterStringToCode(string);
 void debug();
