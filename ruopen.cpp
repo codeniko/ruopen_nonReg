@@ -46,7 +46,7 @@ static bool spotting_bool; //lets spot thread know when to terminate
 #include "utils.cpp"
 
 inline void printInfo() {
-	cout << "\nRUopen Version 1.0\n-------------------------------" << endl;
+	cout << "\nRUopen Version 1.0   -   Created by codeniko\n----------------------------------------" << endl;
 	cout << "Semester: " << info.semesterString << endl << "Campus: " << info.campusString << endl;
 	cout << "SMS Email : " << info.smsEmail << endl << "SMS Phone Number: " << info.smsNumber << endl;
 }
@@ -123,7 +123,7 @@ string getCurrentSemester()
 		int year = jsonroot.get("year", -1).asInt();
 		int term = jsonroot.get("term", -1).asInt();
 		if (year == -1 || term == -1) {
-			cerr << "ERROR: Wrong semester information gathered." << endl;
+			cerr << "ERROR: Wrong semester information retrieved." << endl;
 			return "NULL";
 		}
 		stringstream ss;
@@ -153,12 +153,14 @@ bool getDepartments()
 	curl_easy_setopt(curl.handle, CURLOPT_URL, string("http://sis.rutgers.edu/soc/subjects.json?").append(params).c_str());
 	curl_easy_setopt(curl.handle, CURLOPT_REFERER, "http://sis.rutgers.edu/soc");
 	curl.res = curl_easy_perform(curl.handle);
-	if (curl.res != CURLE_OK)
+	if (curl.res != CURLE_OK) {
+		//cerr << "ERROR: Unable to retrieve Rutgers data." << endl;
 		return false;
+	}
 
 	Json::Reader jsonreader;
-	if (!jsonreader.parse(curl.response, dept_json)) {
-		cerr << "ERROR: Json parser errored on Departments." << endl;
+	if (!jsonreader.parse(curl.response, dept_json) || dept_json.size() == 0) {
+		//cerr << "ERROR: Unable to retrieve Rutgers data." << endl;
 		return false;
 	}
 
@@ -174,13 +176,15 @@ Json::Value *getCourses(string &deptcode)
 	curl_easy_setopt(curl.handle, CURLOPT_URL, string("http://sis.rutgers.edu/soc/courses.json?").append(params).c_str());
 	curl_easy_setopt(curl.handle, CURLOPT_REFERER, "http://sis.rutgers.edu/soc");
 	curl.res = curl_easy_perform(curl.handle);
-	if (curl.res != CURLE_OK)
+	if (curl.res != CURLE_OK) {
+		cerr << "ERROR: Unable to retrieve Rutgers data." << endl;
 		return NULL;
+	}
 
 	Json::Value *courses = new Json::Value();
 	Json::Reader jsonreader;
-	if (!jsonreader.parse(curl.response, *courses)) {
-		cerr << "ERROR: Json parser errored on Departments." << endl;
+	if (!jsonreader.parse(curl.response, *courses) || courses->size() == 0) {
+		cerr << "ERROR: Unable to retrieve Rutgers data." << endl;
 		return NULL;
 	}
 
@@ -243,7 +247,9 @@ bool removeCourse(int row)
 //Add a course to spot
 bool spotCourse(string &deptcode, string &coursecode, string &sectioncode)
 {
-	getDepartments();
+	if (!getDepartments())
+		return false;
+
 	//Validate Department Input
 	Json::ValueIterator it, it2, it3;
 	for (it = dept_json.begin(); it != dept_json.end(); ++it) {
@@ -258,6 +264,8 @@ bool spotCourse(string &deptcode, string &coursecode, string &sectioncode)
 
 	//Validate Course Input
 	Json::Value *course_json = getCourses(dept.deptCode);
+	if (course_json == NULL)
+		return false;
 	unsigned int c;
 	for (c = 0; c < (*course_json).size(); ++c) {
 		if ((*course_json)[c].get("courseNumber", "NULL").asString() == coursecode)
@@ -394,7 +402,7 @@ void spotted(Department &dept, Course &course, Section &section)
 		res = curl_easy_perform(curl);
 
 		if(res != CURLE_OK)
-			fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
+			cerr << "ERROR: SMS failed to send: " << curl_easy_strerror(res) << endl;
 
 		curl_slist_free_all(recipients);
 		curl_easy_cleanup(curl);
@@ -413,9 +421,14 @@ void spot()
 			return;
 		}
 		mtx.unlock();
-		
+
+		int sleeptime = rand() % 3000 + 1001;
 		for (ListDepts::iterator dept = spotting.begin(); dept != spotting.end(); ++dept) {
 			Json::Value *course_json = getCourses(dept->deptCode);
+			if (course_json == NULL) {
+				cout << "Unable to retrieve courses, trying again in " << sleeptime+5000 << "ms." << endl;
+				boost::this_thread::sleep(boost::posix_time::milliseconds(sleeptime+5000));
+			}
 			for (ListCourses::iterator course = dept->courses.begin(); course != dept->courses.end(); ++course) {
 				Json::Value section_json = (*course_json)[course->json_index]["sections"];
 				for (ListSections::iterator section = course->sections.begin(); section != course->sections.end(); ++section) {
@@ -434,7 +447,6 @@ void spot()
 			}
 			delete course_json;
 		}
-		int sleeptime = rand() % 3000 + 1001;
 		cout << "Sleeping for " << sleeptime << "ms." << endl;
 		boost::this_thread::sleep(boost::posix_time::milliseconds(sleeptime));
 	}
@@ -474,7 +486,7 @@ int main(int argc, char **argv)
 				if (section.length() == 1)
 					section.insert(0, "0");
 				if (!spotCourse(dept, course, section))
-					cout << "ERROR: " <<dept<<':'<<course<<':'<<section<< " is invalid." << endl;
+					cerr << "ERROR: Unable to retrieve Rutgers data or " <<dept<<':'<<course<<':'<<section<< " is invalid." << endl;
 			}
 			cout << "OKAY!" << endl;
 			break; //courses should be last thing read from config, so break to prevent weird side effects if a setting is changed after courses are set
@@ -546,7 +558,7 @@ int main(int argc, char **argv)
 			if (spotCourse(dept, course, section))
 				cout << dept<<':'<<course<<':'<<section<< " is now being spotted." << endl;
 			else
-				cout << "ERROR: " <<dept<<':'<<course<<':'<<section<< " is invalid." << endl;
+				cerr << "ERROR: Unable to retrieve Rutgers data or " <<dept<<':'<<course<<':'<<section<< " is invalid." << endl;
 		} else if (cmd.substr(0, 5) == "spot ") {
 			boost::cmatch what; // what[1]=dept, what[2]=course, what[3]=section
 			boost::regex re("^spot\\s+([0-9]{3})[\\s:]+([0-9]{3})[\\s:]+([0-9]{1,2})\\s*$");
@@ -562,7 +574,7 @@ int main(int argc, char **argv)
 			if (spotCourse(dept, course, section))
 				cout << dept<<':'<<course<<':'<<section<< " is now being spotted." << endl;
 			else
-				cout << "ERROR: " <<dept<<':'<<course<<':'<<section<< " is invalid." << endl;
+				cerr << "ERROR: Unable to retrieve Rutgers data or " <<dept<<':'<<course<<':'<<section<< " is invalid." << endl;
 		} else if (cmd == "rm" || cmd == "remove") {
 			printSpotting();
 			cout << "Enter the row # containing the course to remove: ";
@@ -577,7 +589,7 @@ int main(int argc, char **argv)
 			if (removeCourse(atoi(row.c_str())))
 				cout << "Removed course successfully!" << endl;
 			else
-				cout << "ERROR: Course not removed due to invalid row specified" << endl;
+				cerr << "ERROR: Course not removed due to invalid row specified" << endl;
 		} else if (cmd == "info") {
 			printInfo();
 		} else {
