@@ -11,6 +11,10 @@
 #include <boost/regex.hpp>
 #include <list>
 #include <algorithm>
+//#include <boost/thread/locks.hpp> 
+//#include <boost/thread/lock_guard.hpp>
+#include <boost/thread/mutex.hpp>
+#include <boost/thread/thread.hpp>
 
 #define CONFFILE "ruopen.conf"
 
@@ -35,23 +39,29 @@ struct Info {
 	string semesterString;
 	string campus;
 	string campusString;
+	string smsNumber;
+	string smsEmail;
+	string smsPassword;
 };
 
 struct Department;
 struct Course;
 struct Section;
-typedef list<Department> ListDept;
+typedef list<Department> ListDepts;
 typedef list<Course> ListCourses;
 typedef list<Section> ListSections;
 
 struct Section {
 	string section;
 	string courseIndex;
+	int spotCounter; //usually starting at 300 and decrements every spot
+	int json_index;
 };
 
 struct Course {
 	string course;
 	string courseCode;
+	int json_index;
 	ListSections sections;
 };
 
@@ -61,18 +71,31 @@ struct Department {
 	ListCourses courses;
 };
 
-bool init();
-int writeCallback(char *, size_t, size_t, string *);
-bool setSemester(string);
-Json::Value *getDepartments();
-Json::Value *getCourses(string);
+void createConfFile();
+string createParams(string);
+void __attribute__ ((destructor)) dtor();
+Json::Value *getCourses(string &);
 string getCurrentSemester();
+bool getDepartments();
+bool init();
+void printSpotting();
+inline void printVersion();
 bool setCampus(string);
+bool setSemester(string);
+void spot();
 bool spotCourse(string &, string &, string &);
+void spotted(Department &, Course &, Section &);
+int writeCallback(char *, size_t, size_t, string *);
+
+
+//utils.cpp
+extern list<string> providerEmails;
+extern char payload_text[][70];
+struct upload_status;
+size_t payload_source(void *, size_t, size_t, void *);
 string semesterCodeToString(string);
 string semesterStringToCode(string);
 void debug();
 
-void __attribute__ ((destructor)) dtor();
 
 #endif
