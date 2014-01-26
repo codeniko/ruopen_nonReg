@@ -51,25 +51,6 @@ typedef list<Department> ListDepts;
 typedef list<Course> ListCourses;
 typedef list<Section> ListSections;
 
-struct Section {
-	string section;
-	string courseIndex;
-	int spotCounter; //usually starting at 300 and decrements every spot
-	int json_index;
-};
-
-struct Course {
-	string course;
-	string courseCode;
-	int json_index;
-	ListSections sections;
-};
-
-struct Department {
-	string dept;
-	string deptCode;
-	ListCourses courses;
-};
 
 void createConfFile();
 string createParams(string);
@@ -80,6 +61,7 @@ bool getDepartments();
 bool init();
 void printSpotting();
 inline void printVersion();
+bool removeCourse(int);
 bool setCampus(string);
 bool setSemester(string);
 void spot();

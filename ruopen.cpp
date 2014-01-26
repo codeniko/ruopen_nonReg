@@ -1,13 +1,48 @@
 #include "ruopen.h"
 
+struct Section {
+	string section;
+	string courseIndex;
+	int spotCounter; //usually starting at 300 and decrements every spot
+	int json_index;
+
+	// Assignment operator.
+	bool operator ==(const Section &other) {
+		return section == other.section && courseIndex == other.courseIndex;
+	}
+};
+
+struct Course {
+	string course;
+	string courseCode;
+	int json_index;
+	ListSections sections;
+
+	// Assignment operator.
+	bool operator ==(const Course &other) {
+		return course == other.course && courseCode == other.courseCode;
+	}
+};
+
+struct Department {
+	string dept;
+	string deptCode;
+	ListCourses courses;
+
+	// Assignment operator.
+	bool operator ==(const Department &other) {
+		return dept == other.dept && deptCode == other.deptCode;
+	}
+};
+
 Curl curl;
-Info info;
-ListDepts spotting;
-Json::Value dept_json;
+static Info info;
+static ListDepts spotting;
+static Json::Value dept_json;
 
 //Multithreading variables
-boost::mutex mtx;
-bool spotting_bool; //lets spot thread know when to terminate
+static boost::mutex mtx;
+static bool spotting_bool; //lets spot thread know when to terminate
 
 #include "utils.cpp"
 
@@ -180,10 +215,33 @@ bool setCampus(string campus)
 	return true;
 }
 
+bool removeCourse(int row)
+{
+	int count = 0;
+	for (ListDepts::iterator dept = spotting.begin(); dept != spotting.end(); ++dept) {
+		for (ListCourses::iterator course = dept->courses.begin(); course != dept->courses.end(); ++course) {
+			for (ListSections::iterator section = course->sections.begin(); section != course->sections.end(); ++section) {
+				++count;
+				if (row == count) {
+					if (course->sections.size() > 1) {
+						course->sections.remove(*section);
+					} else {
+						if (dept->courses.size() > 1)
+							dept->courses.remove(*course);
+						else
+								spotting.remove(*dept);
+					}
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
 //Add a course to spot
 bool spotCourse(string &deptcode, string &coursecode, string &sectioncode)
 {
-	cout << deptcode <<" "<<coursecode<<" "<<sectioncode<<endl;
 	getDepartments();
 	//Validate Department Input
 	Json::ValueIterator it, it2, it3;
@@ -290,14 +348,18 @@ void createConfFile()
 
 void printSpotting()
 {
+	int count = 0;
 	cout << endl << "Currently spotting:" << endl;
 	for (ListDepts::iterator dept = spotting.begin(); dept != spotting.end(); ++dept) {
 		for (ListCourses::iterator course = dept->courses.begin(); course != dept->courses.end(); ++course) {
 			for (ListSections::iterator section = course->sections.begin(); section != course->sections.end(); ++section) {
-				cout << '[' << section->courseIndex << "] " << dept->deptCode << ":" << course->courseCode << ":" << section->section << ' ' << course->course << endl;
+				++count;
+				cout << count << ".    [" << section->courseIndex << "] " << dept->deptCode << ":" << course->courseCode << ":" << section->section << ' ' << course->course << endl;
 			}
 		}
 	}
+	if (count == 0)
+		cout << "  Not spotting any courses..." << endl;
 }
 
 //A course has been spotted! Alert the user by playing a sound file and sending an SMS
@@ -468,6 +530,8 @@ int main(int argc, char **argv)
 			mtx.lock();
 			spotting_bool = false;
 			mtx.unlock();
+		} else if (cmd == "exit") {
+			return 0;
 		} else if (cmd == "spot") {
 			string dept, course, section;
 			cout << "Enter Department Number: ";
@@ -498,6 +562,32 @@ int main(int argc, char **argv)
 				cout << dept<<':'<<course<<':'<<section<< " is now being spotted." << endl;
 			else
 				cout << "ERROR: " <<dept<<':'<<course<<':'<<section<< " is invalid." << endl;
+		} else if (cmd == "rm" || cmd == "remove") {
+			printSpotting();
+			cout << "Enter the row # containing the course to remove: ";
+			getline(cin, cmd);
+			boost::cmatch what; // what[1]=dept, what[2]=course, what[3]=section
+			boost::regex re("^\\s*([0-9]+)\\s*$");
+			if (!boost::regex_match(cmd.c_str(), what, re)) {
+				cout << "Error: Enter a number next time!" << endl;
+				continue;
+			}
+			string row(what[1].first, what[1].second);
+			if (removeCourse(atoi(row.c_str())))
+				cout << "Removed course successfully!" << endl;
+			else
+				cout << "ERROR: Course not removed due to invalid row specified" << endl;
+		} else {
+			cout << "\nList of commands:\n";
+			cout << "  spot <###:###:##>   - add a course to spot\n";
+			cout << "  spot <### ### ##>   - add a course to spot\n";
+			cout << "  spot                - add a course to spot\n";
+			cout << "  rm | remove         - remove a course being spotted\n";
+			cout << "  list | spotting     - list all courses being spotted\n";
+			cout << "  start               - start the spotter\n";
+			cout << "  stop                - stop the spotter\n";
+			cout << "  exit                - close the program\n";
+			cout << "\nFor more details on the commands and the configuration file, check the README" << endl;
 		}
 	} while (1);
 
