@@ -4,7 +4,6 @@ struct Section {
 	string section;
 	string courseIndex;
 	int spotCounter; //usually starting at 300 and decrements every spot
-	int json_index;
 
 	// Assignment operator.
 	bool operator ==(const Section &other) {
@@ -46,8 +45,10 @@ static bool spotting_bool; //lets spot thread know when to terminate
 
 #include "utils.cpp"
 
-inline void printVersion() {
-	cout << "RUopen Version 1.0" << endl << "Semester: " << info.semesterString << endl << "Campus: " << info.campusString << endl;
+inline void printInfo() {
+	cout << "\nRUopen Version 1.0\n-------------------------------" << endl;
+	cout << "Semester: " << info.semesterString << endl << "Campus: " << info.campusString << endl;
+	cout << "SMS Email : " << info.smsEmail << endl << "SMS Phone Number: " << info.smsNumber << endl;
 }
 
 bool init()
@@ -341,7 +342,7 @@ void createConfFile()
 		"#     NOTE* Have each course on a separate line with no empty lines inbetween.\n\n"
 		"[CAMPUS]\nNew Brunswick\n\n[SEMESTER]\n\n" <<
 		"[SMS EMAIL]\nexample@yahoo.com\n\n[SMS PASSWORD]\nPasswordForEmailGoesHere\n\n"
-		"[SMS NUMBER]\n1234567890\n\n[COURSES]\n\n";
+		"[SMS PHONE NUMBER]\n1234567890\n\n[COURSES]\n\n";
 
 	conf.close();
 }
@@ -454,7 +455,7 @@ int main(int argc, char **argv)
 	int linecount = 0;
 	while (getline(conf, line)) {
 		if (line == "[COURSES]") {
-			printVersion();
+			printInfo();
 			cout << "Validating course information from Rutgers...." << flush;
 			while (getline(conf, line)) {
 				if (line.length() == 0) //blank line, end course list
@@ -477,12 +478,12 @@ int main(int argc, char **argv)
 			}
 			cout << "OKAY!" << endl;
 			break; //courses should be last thing read from config, so break to prevent weird side effects if a setting is changed after courses are set
-		} else if (line == "[SMS NUMBER]" || line == "[SMS EMAIL]" || line == "[SMS PASSWORD]") {
+		} else if (line == "[SMS PHONE NUMBER]" || line == "[SMS EMAIL]" || line == "[SMS PASSWORD]") {
 			string line2;
 			getline(conf, line2);
 			if (line2.length() == 0) //blank line because setting is optional, ignore
 				continue;
-			if (line == "[SMS NUMBER]") info.smsNumber = line2;
+			if (line == "[SMS PHONE NUMBER]") info.smsNumber = line2;
 			else if (line == "[SMS EMAIL]") info.smsEmail = line2;
 			else info.smsPassword = line2;
 		} else if (line == "[SEMESTER]") {
@@ -516,7 +517,7 @@ int main(int argc, char **argv)
 		cout << endl << "Enter a command: ";
 		string cmd;
 		getline(cin, cmd);
-		if (cmd == "spotting" || cmd == "list")
+		if (cmd == "list")
 			printSpotting();
 		else if (cmd == "start") {
 			if (spotting_bool) {
@@ -577,16 +578,20 @@ int main(int argc, char **argv)
 				cout << "Removed course successfully!" << endl;
 			else
 				cout << "ERROR: Course not removed due to invalid row specified" << endl;
+		} else if (cmd == "info") {
+			printInfo();
 		} else {
 			cout << "\nList of commands:\n";
+			cout << "  exit                - close the program\n";
+			cout << "  info                - show spotter info\n";
+			cout << "  list                - list all courses being spotted\n";
+			cout << "  rm | remove         - remove a course being spotted\n";
 			cout << "  spot <###:###:##>   - add a course to spot\n";
 			cout << "  spot <### ### ##>   - add a course to spot\n";
 			cout << "  spot                - add a course to spot\n";
-			cout << "  rm | remove         - remove a course being spotted\n";
-			cout << "  list | spotting     - list all courses being spotted\n";
 			cout << "  start               - start the spotter\n";
 			cout << "  stop                - stop the spotter\n";
-			cout << "  exit                - close the program\n";
+			cout << "  verbose             - enable/disable verbose messages\n";
 			cout << "\nFor more details on the commands and the configuration file, check the README" << endl;
 		}
 	} while (1);

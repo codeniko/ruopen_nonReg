@@ -34,7 +34,6 @@ struct Curl {
 };
 
 struct Info {
-	bool isSemesterAutoSet; // was semester code given to program or parsed auto from json
 	string semester;
 	string semesterString;
 	string campus;
@@ -59,8 +58,8 @@ Json::Value *getCourses(string &);
 string getCurrentSemester();
 bool getDepartments();
 bool init();
+inline void printInfo();
 void printSpotting();
-inline void printVersion();
 bool removeCourse(int);
 bool setCampus(string);
 bool setSemester(string);
