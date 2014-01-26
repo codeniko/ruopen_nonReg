@@ -1,5 +1,6 @@
-CFLAGS_L=-Wall -g -lcurl -ljson -lboost_regex
-CFLAGS=-Wall -g
+CFLAGS_L=-Wall -g -lcurl -ljson -lboost_regex -lboost_thread
+CFLAGS=-W -Wall -g -std=c++11 -Wextra -pedantic
+CFLAGS_PRODUCTION=-s -O2 -flto -march=native
 
 all: ruopen
 .PHONY: all
