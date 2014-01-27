@@ -126,6 +126,15 @@ string getCurrentSemester()
 			cerr << "ERROR: Wrong semester information retrieved." << endl;
 			return "NULL";
 		}
+
+		//If Summer or Winter, change to previous Spring or Fall
+		if (term == 0) { //Winter -> Fall
+			term = 9;
+			--year;
+		}
+		if (term == 7) //Summer -> Spring
+			term = 1;
+
 		stringstream ss;
 		ss << term << year; //rutgers semester code is just term + year
 		curl.response.clear();
