@@ -20,29 +20,6 @@
 
 using namespace std;
 
-struct Curl {
-	CURL *handle;
-	CURLcode res;
-	string response; //response
-	int respLen; //response length
-	string responseHeader; // response header
-	string cookiejar;
-	struct Headers {
-		struct curl_slist *json;
-		struct curl_slist *text;
-	} headers;
-};
-
-struct Info {
-	string semester;
-	string semesterString;
-	string campus;
-	string campusString;
-	string smsNumber;
-	string smsEmail;
-	string smsPassword;
-};
-
 struct Department;
 struct Course;
 struct Section;

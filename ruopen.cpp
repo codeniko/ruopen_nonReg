@@ -1,5 +1,29 @@
 #include "ruopen.h"
 
+struct Curl {
+	CURL *handle;
+	CURLcode res;
+	string response; //response
+	int respLen; //response length
+	string responseHeader; // response header
+	string cookiejar;
+	struct Headers {
+		struct curl_slist *json;
+		struct curl_slist *text;
+	} headers;
+};
+
+struct Info {
+	string semester;
+	string semesterString;
+	string campus;
+	string campusString;
+	string smsNumber;
+	string smsEmail;
+	string smsPassword;
+	bool quiet;
+};
+
 struct Section {
 	string section;
 	string courseIndex;
@@ -85,6 +109,7 @@ bool init()
 	curl_easy_setopt(curl.handle, CURLOPT_REFERER, "http://www.codeniko.net"); //default
 	// curl_easy_setopt(curl.handle, CURLOPT_POSTFIELDS, jsonput.c_str());
 	// curl_easy_setopt(curl.handle, CURLOPT_POSTFIELDSIZE, jsonput.length());
+	info.quiet = false;
 	setCampus("new brunswick");
 	return setSemester(getCurrentSemester());
 }
@@ -359,7 +384,7 @@ void createConfFile()
 		"#     NOTE* Have each course on a separate line with no empty lines inbetween.\n\n"
 		"[CAMPUS]\nNew Brunswick\n\n[SEMESTER]\n\n" <<
 		"[SMS EMAIL]\nexample@yahoo.com\n\n[SMS PASSWORD]\nPasswordForEmailGoesHere\n\n"
-		"[SMS PHONE NUMBER]\n1234567890\n\n[COURSES]\n\n";
+		"[SMS PHONE NUMBER]\n1234567890\n\n[QUIET]\nfalse\n\n[COURSES]\n\n";
 
 	conf.close();
 }
@@ -422,6 +447,8 @@ void spotted(Department &dept, Course &course, Section &section)
 void spot()
 {
 	cout << "Spotter started!" << endl;
+	if (info.quiet)
+		cout << "Quiet mode is enabled - suppressing messages while spotting." << endl;
 	while (1) {
 		//should thread die?
 		mtx.lock();
@@ -435,7 +462,8 @@ void spot()
 		for (ListDepts::iterator dept = spotting.begin(); dept != spotting.end(); ++dept) {
 			Json::Value *course_json = getCourses(dept->deptCode);
 			if (course_json == NULL) {
-				cout << "Unable to retrieve courses, trying again in " << sleeptime+5000 << "ms." << endl;
+				if (!info.quiet)
+					cout << "Unable to retrieve courses, trying again in " << sleeptime+5000 << "ms." << endl;
 				boost::this_thread::sleep(boost::posix_time::milliseconds(sleeptime+5000));
 			}
 			for (ListCourses::iterator course = dept->courses.begin(); course != dept->courses.end(); ++course) {
@@ -443,11 +471,14 @@ void spot()
 				for (ListSections::iterator section = course->sections.begin(); section != course->sections.end(); ++section) {
 					for (unsigned int s = 0; s < section_json.size(); ++s) {
 						if (section_json[s].get("number", "NULL").asString() == section->section) {
-							cout << "Checking "<<'[' << section->courseIndex << "] " << dept->deptCode << ":" << course->courseCode << ":" << section->section << ' ' << course->course << endl;
-							if (section_json[s].get("openStatus", false).asBool() == true && section->spotCounter <= 0)
+							if (!info.quiet)
+								cout << "Checking "<<'[' << section->courseIndex << "] " << dept->deptCode << ":" << course->courseCode << ":" << section->section << ' ' << course->course << ".......";
+							if (section_json[s].get("openStatus", false).asBool() == true && section->spotCounter <= 0) {
+								cout << "OPEN!" << endl;
 								spotted(*dept, *course, *section);
-							else
-								cout << "It's closed... counter is at: " << section->spotCounter << endl;
+							} else
+								if (!info.quiet)
+									cout << "closed." << endl;
 							break;
 						}
 					}
@@ -456,7 +487,8 @@ void spot()
 			}
 			delete course_json;
 		}
-		cout << "Sleeping for " << sleeptime << "ms." << endl;
+		if (!info.quiet)
+			cout << "Sleeping for " << sleeptime << "ms." << endl;
 		boost::this_thread::sleep(boost::posix_time::milliseconds(sleeptime));
 	}
 }
@@ -469,8 +501,11 @@ int main(int argc, char **argv)
 	//Read configuration file and apply all custom settings
 	ifstream conf;
 	conf.open(CONFFILE);
-	if (!conf.is_open())
+	if (!conf.is_open()) {
 		createConfFile();
+		cout << "A configuration file has been generated for you: ruopen.conf\nYou should edit the conf file before running the program again." << endl;
+		return 0;
+	}
 
 	string line;
 	int linecount = 0;
@@ -486,7 +521,6 @@ int main(int argc, char **argv)
 				if (!boost::regex_match(line.c_str(), what, re)) {
 					cerr << "ERROR: Configuration file is formatted incorrectly on line " << linecount << ": '" << line << "'." << endl;
 					cerr << "\tExample Format: 198:111:01 or 198 111 01 where 198 is department, 111 is course, and 01 is section." << endl;
-					cerr << "\tTo restore the default conf file, run " << argv[0] << " --create-conf" << endl;
 					return 1;
 				}
 				string dept(what[1].first, what[1].second);
@@ -507,6 +541,12 @@ int main(int argc, char **argv)
 			if (line == "[SMS PHONE NUMBER]") info.smsNumber = line2;
 			else if (line == "[SMS EMAIL]") info.smsEmail = line2;
 			else info.smsPassword = line2;
+		} else if (line == "[QUIET]") {
+			getline(conf, line);
+			if (line == "true")
+				info.quiet = true;
+			else
+				info.quiet = false;
 		} else if (line == "[SEMESTER]") {
 			getline(conf, line);
 			if (line.length() == 0) //blank line because setting is optional, ignore
@@ -598,22 +638,28 @@ int main(int argc, char **argv)
 			if (removeCourse(atoi(row.c_str())))
 				cout << "Removed course successfully!" << endl;
 			else
-				cerr << "ERROR: Course not removed due to invalid row specified" << endl;
+				cerr << "ERROR: Course not removed due to invalid row specified." << endl;
 		} else if (cmd == "info") {
 			printInfo();
+		} else if (cmd == "quiet") {
+			info.quiet = !info.quiet;
+			if (info.quiet)
+				cout << "Quiet mode enabled - suppressing messages while spotting." << endl;
+			else
+				cout << "Quiet mode disabled - displaying messages while spotting." << endl;
 		} else {
 			cout << "\nList of commands:\n";
 			cout << "  exit                - close the program\n";
 			cout << "  info                - show spotter info\n";
 			cout << "  list                - list all courses being spotted\n";
+			cout << "  quiet               - enable/disable messages while spotting\n";
 			cout << "  rm | remove         - remove a course being spotted\n";
 			cout << "  spot <###:###:##>   - add a course to spot\n";
 			cout << "  spot <### ### ##>   - add a course to spot\n";
 			cout << "  spot                - add a course to spot\n";
 			cout << "  start               - start the spotter\n";
 			cout << "  stop                - stop the spotter\n";
-			cout << "  verbose             - enable/disable verbose messages\n";
-			cout << "\nFor more details on the commands and the configuration file, check the README" << endl;
+			cout << "\nFor more details on the commands and the configuration file, check the README." << endl;
 		}
 	} while (1);
 
