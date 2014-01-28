@@ -43,6 +43,7 @@ bool setSemester(string);
 void spot();
 bool spotCourse(string &, string &, string &);
 void spotted(Department &, Course &, Section &);
+inline void testSMS();
 int writeCallback(char *, size_t, size_t, string *);
 
 

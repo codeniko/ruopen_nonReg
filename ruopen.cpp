@@ -405,13 +405,25 @@ void printSpotting()
 		cout << "  Not spotting any courses..." << endl;
 }
 
+inline void testSMS() {
+	Department dept;
+	Course course;
+	Section section;
+	dept.dept = "TESTSMS";
+	cout << "Sending a test message to " << info.smsNumber << " from " << info.smsEmail << "." << endl;
+	spotted(dept, course, section);
+}
+
 //A course has been spotted! Alert the user by playing a sound file and sending an SMS
 void spotted(Department &dept, Course &course, Section &section)
 {
-	section.spotCounter = 200;
-	string whatspotted = "["+section.courseIndex+"] "+dept.deptCode+":"+course.courseCode+":"+section.section+" "+course.course+" has been spotted!\r\n";
-	cout << whatspotted << flush;
-	system("mpg321 -q alert.mp3");
+	string whatspotted = "This is a test message from RUopen.";
+	if (dept.dept != "TESTSMS") {
+		section.spotCounter = 200;
+		whatspotted = "["+section.courseIndex+"] "+dept.deptCode+":"+course.courseCode+":"+section.section+" "+course.course+" has been spotted!\r\n";
+		cout << whatspotted << flush;
+		system("mpg321 -q alert.mp3");
+	}
 	CURL *curl;
 	CURLcode res = CURLE_OK;
 	curl_slist *recipients = NULL;
@@ -647,6 +659,8 @@ int main(int argc, char **argv)
 				cout << "Quiet mode enabled - suppressing messages while spotting." << endl;
 			else
 				cout << "Quiet mode disabled - displaying messages while spotting." << endl;
+		} else if (cmd == "testSMS") {
+			testSMS();
 		} else {
 			cout << "\nList of commands:\n";
 			cout << "  exit                - close the program\n";
@@ -659,6 +673,7 @@ int main(int argc, char **argv)
 			cout << "  spot                - add a course to spot\n";
 			cout << "  start               - start the spotter\n";
 			cout << "  stop                - stop the spotter\n";
+			cout << "  testSMS             - send a test SMS message to your phone\n";
 			cout << "\nFor more details on the commands and the configuration file, check the README." << endl;
 		}
 	} while (1);
