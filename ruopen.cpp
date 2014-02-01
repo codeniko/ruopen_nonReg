@@ -636,15 +636,23 @@ int main(int argc, char **argv)
 				cout << dept<<':'<<course<<':'<<section<< " is now being spotted." << endl;
 			else
 				cerr << "ERROR: Unable to retrieve Rutgers data or " <<dept<<':'<<course<<':'<<section<< " is invalid." << endl;
-		} else if (cmd == "rm" || cmd == "remove") {
-			printSpotting();
-			cout << "Enter the row # containing the course to remove: ";
-			getline(cin, cmd);
+		} else if (cmd == "rm" || cmd == "remove" || cmd.substr(0,3) == "rm " || cmd.substr(0,7) == "remove ") {
+			boost::regex reNumOnly("^\\s*([0-9]+)\\s*$");
+			boost::regex reWithKeyword("^\\s*(?:rm|remove)\\s+([0-9]+)\\s*$");
 			boost::cmatch what; // what[1]=dept, what[2]=course, what[3]=section
-			boost::regex re("^\\s*([0-9]+)\\s*$");
-			if (!boost::regex_match(cmd.c_str(), what, re)) {
-				cout << "Error: Enter a number next time!" << endl;
-				continue;
+			if (cmd == "rm" || cmd == "remove") {
+				printSpotting();
+				cout << "Enter the row # containing the course to remove: ";
+				getline(cin, cmd);
+				if (!boost::regex_match(cmd.c_str(), what, reNumOnly)) {
+					cout << "Error: Enter a number next time!" << endl;
+					continue;
+				}
+			} else {
+				if (!boost::regex_match(cmd.c_str(), what, reWithKeyword)) {
+					cout << "Error: Invalid syntax for removal. Type help for the correct syntax." << endl;
+					continue;
+				}
 			}
 			string row(what[1].first, what[1].second);
 			if (removeCourse(atoi(row.c_str())))
