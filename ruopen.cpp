@@ -491,7 +491,6 @@ void spot()
 							} else
 								if (!info.quiet)
 									cout << "closed." << endl;
-							continue;
 						}
 					}
 					--section->spotCounter;
@@ -505,7 +504,7 @@ void spot()
 	}
 }
 
-int main(int argc, char **argv)
+int main()
 {
 	if (!init())
 		return 1; //error printed from call
