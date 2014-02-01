@@ -411,16 +411,16 @@ inline void testSMS() {
 	Section section;
 	dept.dept = "TESTSMS";
 	cout << "Sending a test message to " << info.smsNumber << " from " << info.smsEmail << "." << endl;
-	spotted(dept, course, section);
+	spotted(&dept, &course, &section);
 }
 
 //A course has been spotted! Alert the user by playing a sound file and sending an SMS
-void spotted(Department &dept, Course &course, Section &section)
+void spotted(Department *dept, Course *course, Section *section)
 {
 	string whatspotted = "This is a test message from RUopen.";
-	if (dept.dept != "TESTSMS") {
-		section.spotCounter = 200;
-		whatspotted = "["+section.courseIndex+"] "+dept.deptCode+":"+course.courseCode+":"+section.section+" "+course.course+" has been spotted!\r\n";
+	if (dept->dept != "TESTSMS") {
+		section->spotCounter = 200;
+		whatspotted = "["+section->courseIndex+"] "+dept->deptCode+":"+course->courseCode+":"+section->section+" "+course->course+" has been spotted!\r\n";
 		cout << whatspotted << flush;
 		system("mpg321 -q alert.mp3");
 	}
@@ -487,11 +487,11 @@ void spot()
 								cout << "Checking "<<'[' << section->courseIndex << "] " << dept->deptCode << ":" << course->courseCode << ":" << section->section << ' ' << course->course << ".......";
 							if (section_json[s].get("openStatus", false).asBool() == true && section->spotCounter <= 0) {
 								cout << "OPEN!" << endl;
-								spotted(*dept, *course, *section);
+								boost::thread threadspotted(spotted, &(*dept), &(*course), &(*section));
 							} else
 								if (!info.quiet)
 									cout << "closed." << endl;
-							break;
+							continue;
 						}
 					}
 					--section->spotCounter;
