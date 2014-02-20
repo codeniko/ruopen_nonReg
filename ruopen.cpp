@@ -547,7 +547,7 @@ int main()
 			if (line == "[SMS PHONE NUMBER]") info.smsNumber = line2;
 			else if (line == "[SMS EMAIL]") info.smsEmail = line2;
 			else info.smsPassword = line2;
-		} else if (line == "[QUIET]") {
+		} else if (line == "[SILENT]") {
 			getline(conf, line);
 			if (line == "true")
 				info.silent = true;
