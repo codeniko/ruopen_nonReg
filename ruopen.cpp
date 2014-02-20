@@ -377,7 +377,7 @@ void createConfFile()
 {
 	ofstream conf;
 	conf.open(CONFFILE);
-	cout << "[CAMPUS]\nNew Brunswick\n\n[SEMESTER]\n\n" <<
+	conf << "[CAMPUS]\nNew Brunswick\n\n[SEMESTER]\n\n" <<
 		"[SMS EMAIL]\nexample@yahoo.com\n\n[SMS PASSWORD]\nPasswordForEmailGoesHere\n\n"
 		"[SMS PHONE NUMBER]\n1234567890\n\n[SILENT]\nfalse\n\n[COURSES]\n\n";
 
