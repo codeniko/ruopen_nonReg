@@ -1,5 +1,5 @@
 #RUopen? - Rutgers Course Spotter
-Is the course you need to graduate closed? Or maybe you want that Easy A class that is always closed. RUopen has got you covered! RUopen spots when the section of a course you want opens, and even notifies you through text.
+Is the course you need to graduate closed? Or maybe you want that Easy A class that is always closed. RUopen has got you covered! RUopen spots when the section of a course you want opens, and even notifies you through a text message.
 
 *Programmed by Nikolay Feldman*
 
