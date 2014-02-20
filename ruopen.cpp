@@ -455,7 +455,7 @@ void spot()
 {
 	cout << "Spotter started!" << endl;
 	if (info.silent)
-		cout << "Quiet mode is enabled - suppressing messages while spotting." << endl;
+		cout << "Silent mode is enabled - suppressing messages while spotting." << endl;
 	while (1) {
 		//should thread die?
 		mtx.lock();
