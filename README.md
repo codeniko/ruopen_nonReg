@@ -4,9 +4,9 @@ Is the course you need to graduate closed? Or maybe you want that Easy A class t
 *Programmed by Nikolay Feldman*
 
 **History**<br>
-Java GUI version created in ~2012 (GUI looked pretty bad with gridbag)<br>
-C# GUI version created ~2013 (Beautiful GUI)<br>
-C++ CLI version created ~2014 (Built with speed in mind and to run on server)
+Java GUI version created in ~2012 *(GUI looked pretty bad with gridbag)*<br>
+C# GUI version created ~2013 *(Beautiful GUI)*<br>
+C++ CLI version created ~2014 *(Built with speed in mind and to run on server)*
 
 ##Installation
 **Dependencies**<br>
