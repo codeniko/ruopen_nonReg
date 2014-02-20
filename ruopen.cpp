@@ -21,7 +21,7 @@ struct Info {
 	string smsNumber;
 	string smsEmail;
 	string smsPassword;
-	bool quiet;
+	bool silent;
 };
 
 struct Section {
@@ -109,7 +109,7 @@ bool init()
 	curl_easy_setopt(curl.handle, CURLOPT_REFERER, "http://www.codeniko.net"); //default
 	// curl_easy_setopt(curl.handle, CURLOPT_POSTFIELDS, jsonput.c_str());
 	// curl_easy_setopt(curl.handle, CURLOPT_POSTFIELDSIZE, jsonput.length());
-	info.quiet = false;
+	info.silent = false;
 	setCampus("new brunswick");
 	return setSemester(getCurrentSemester());
 }
@@ -377,14 +377,9 @@ void createConfFile()
 {
 	ofstream conf;
 	conf.open(CONFFILE);
-	conf << "# NOTE* If not using a setting or want the default, you can also remove the setting entirely or have the value be an empty line.\n" <<
-		"# [CAMPUS] Values: New Brunswick, Newark, Camden.\n# Default: New Brunswick\n\n" <<
-		"# [SEMESTER] Values: <SEASON> <YEAR>\n# Examples: Spring 2014, Summer 2013, Fall 2012, Winter 2011, etc...\n# Default: <EMPTY LINE> signifying to use current semester (determined automatically).\n\n" <<
-		"# [COURSES] Values: <DEPARTMENT>:<COURSE>:<SECTION>\n# Examples: 198:111:03 or 640:250:01\n# Default: <EMPTY LINE> signifying not to spot any courses (can be set within program)." <<
-		"#     NOTE* Have each course on a separate line with no empty lines inbetween.\n\n"
-		"[CAMPUS]\nNew Brunswick\n\n[SEMESTER]\n\n" <<
+	cout << "[CAMPUS]\nNew Brunswick\n\n[SEMESTER]\n\n" <<
 		"[SMS EMAIL]\nexample@yahoo.com\n\n[SMS PASSWORD]\nPasswordForEmailGoesHere\n\n"
-		"[SMS PHONE NUMBER]\n1234567890\n\n[QUIET]\nfalse\n\n[COURSES]\n\n";
+		"[SMS PHONE NUMBER]\n1234567890\n\n[SILENT]\nfalse\n\n[COURSES]\n\n";
 
 	conf.close();
 }
@@ -459,7 +454,7 @@ void spotted(Department *dept, Course *course, Section *section)
 void spot()
 {
 	cout << "Spotter started!" << endl;
-	if (info.quiet)
+	if (info.silent)
 		cout << "Quiet mode is enabled - suppressing messages while spotting." << endl;
 	while (1) {
 		//should thread die?
@@ -474,7 +469,7 @@ void spot()
 		for (ListDepts::iterator dept = spotting.begin(); dept != spotting.end(); ++dept) {
 			Json::Value *course_json = getCourses(dept->deptCode);
 			if (course_json == NULL) {
-				if (!info.quiet)
+				if (!info.silent)
 					cout << "Unable to retrieve courses, trying again in " << sleeptime+5000 << "ms." << endl;
 				boost::this_thread::sleep(boost::posix_time::milliseconds(sleeptime+5000));
 			}
@@ -483,13 +478,13 @@ void spot()
 				for (ListSections::iterator section = course->sections.begin(); section != course->sections.end(); ++section) {
 					for (unsigned int s = 0; s < section_json.size(); ++s) {
 						if (section_json[s].get("number", "NULL").asString() == section->section) {
-							if (!info.quiet)
+							if (!info.silent)
 								cout << "Checking "<<'[' << section->courseIndex << "] " << dept->deptCode << ":" << course->courseCode << ":" << section->section << ' ' << course->course << ".......";
 							if (section_json[s].get("openStatus", false).asBool() == true && section->spotCounter <= 0) {
 								cout << "OPEN!" << endl;
 								boost::thread threadspotted(spotted, &(*dept), &(*course), &(*section));
 							} else
-								if (!info.quiet)
+								if (!info.silent)
 									cout << "closed." << endl;
 						}
 					}
@@ -498,7 +493,7 @@ void spot()
 			}
 			delete course_json;
 		}
-		if (!info.quiet)
+		if (!info.silent)
 			cout << "Sleeping for " << sleeptime << "ms." << endl;
 		boost::this_thread::sleep(boost::posix_time::milliseconds(sleeptime));
 	}
@@ -555,9 +550,9 @@ int main()
 		} else if (line == "[QUIET]") {
 			getline(conf, line);
 			if (line == "true")
-				info.quiet = true;
+				info.silent = true;
 			else
-				info.quiet = false;
+				info.silent = false;
 		} else if (line == "[SEMESTER]") {
 			getline(conf, line);
 			if (line.length() == 0) //blank line because setting is optional, ignore
@@ -660,12 +655,12 @@ int main()
 				cerr << "ERROR: Course not removed due to invalid row specified." << endl;
 		} else if (cmd == "info") {
 			printInfo();
-		} else if (cmd == "quiet") {
-			info.quiet = !info.quiet;
-			if (info.quiet)
-				cout << "Quiet mode enabled - suppressing messages while spotting." << endl;
+		} else if (cmd == "silent") {
+			info.silent = !info.silent;
+			if (info.silent)
+				cout << "Silent mode enabled - suppressing messages while spotting." << endl;
 			else
-				cout << "Quiet mode disabled - displaying messages while spotting." << endl;
+				cout << "Silent mode disabled - displaying messages while spotting." << endl;
 		} else if (cmd == "testSMS") {
 			testSMS();
 		} else {
@@ -673,9 +668,9 @@ int main()
 			cout << "  exit                - close the program\n";
 			cout << "  info                - show spotter info\n";
 			cout << "  list                - list all courses being spotted\n";
-			cout << "  quiet               - enable/disable messages while spotting\n";
 			cout << "  rm | remove         - remove a course being spotted\n";
 			cout << " rm <row>             - remove a course being spotted, where row is # from list\n";
+			cout << "  silent              - enable/disable messages while spotting\n";
 			cout << "  spot <###:###:##>   - add a course to spot\n";
 			cout << "  spot <### ### ##>   - add a course to spot\n";
 			cout << "  spot                - add a course to spot\n";
