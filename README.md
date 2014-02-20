@@ -58,6 +58,13 @@ The mobile phone number that will be notified when your class has been spotted.
 <b>NOTE</b> Don't have any spaces in the number
 </pre>
 
+Should the program display its progress and course checks (to stdout), or should it be silent. If silent == true, an alert and an SMS message will still be sent when a course is spotted.
+<pre>
+ [SILENT]
+ Values: <i>true, false</i>
+ Default: <i>false</i>
+</pre>
+
 Pre-load the courses/sections to spot for on program execution.
 <pre>
  [COURSES] 
