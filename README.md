@@ -13,7 +13,8 @@ C++ CLI version created ~2014 *(Built with speed in mind and to run on server)*
 The versions specified below are the versions in which RUopen was developed.<br>
 gcc >= *4.7.2*<br>
 LibCurl  >= *7.26.0*<br>
-Boost >= *1.55.0*
+Boost >= *1.55.0*<br>
+JsonCpp >= *0.5.0*
 
 To build, simply run
 > make
